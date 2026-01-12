@@ -1,5 +1,7 @@
 # Filament Context Sidebar
 
+[![run-tests](https://github.com/skylence-be/filament-context-sidebar/actions/workflows/run-tests.yml/badge.svg)](https://github.com/skylence-be/filament-context-sidebar/actions/workflows/run-tests.yml)
+
 Contextual sidebar navigation for Filament resource pages. Compatible with Filament 4.
 
 ## Installation
