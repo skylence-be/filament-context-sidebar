@@ -7,8 +7,6 @@ namespace Skylence\FilamentContextSidebar;
 use Closure;
 use Filament\Navigation\NavigationGroup;
 use Filament\Support\Concerns\EvaluatesClosures;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Skylence\FilamentContextSidebar\Contracts\Makeable;
 use Skylence\FilamentContextSidebar\Enums\PageNavigationLayout;
 
@@ -41,6 +39,7 @@ class ContextSidebar implements Makeable
 
     public function getTitle(): ?string
     {
+        /** @var string|null */
         return $this->evaluate($this->title);
     }
 
@@ -53,6 +52,7 @@ class ContextSidebar implements Makeable
 
     public function getDescription(): ?string
     {
+        /** @var string|null */
         return $this->evaluate($this->description);
     }
 
@@ -65,6 +65,7 @@ class ContextSidebar implements Makeable
 
     public function isDescriptionCopyable(): bool
     {
+        /** @var bool */
         return $this->evaluate($this->descriptionCopyable);
     }
 
@@ -83,63 +84,45 @@ class ContextSidebar implements Makeable
      */
     public function getNavigationItems(): array
     {
-        return collect($this->navigationItems)
+        $items = collect($this->navigationItems)
             ->filter(fn (ContextNavigationItem $item): bool => $item->isVisible())
-            ->sortBy(fn (ContextNavigationItem $item): int => $item->getSort())
-            ->groupBy(fn (ContextNavigationItem $item): ?string => $item->getGroup())
-            ->map(function (Collection $items, ?string $groupIndex): NavigationGroup {
-                if (blank($groupIndex)) {
-                    return NavigationGroup::make()->items($items);
-                }
+            ->sortBy(fn (ContextNavigationItem $item): int => $item->getSort());
 
-                $registeredGroup = collect([])
-                    ->first(function (NavigationGroup|string $registeredGroup, string|int $registeredGroupIndex) use ($groupIndex) {
-                        if ($registeredGroupIndex === $groupIndex) {
-                            return true;
-                        }
+        /** @var array<string, list<ContextNavigationItem>> $grouped */
+        $grouped = [];
+        foreach ($items as $item) {
+            $rawGroup = $item->getGroup();
+            $group = $rawGroup instanceof \UnitEnum ? $rawGroup->name : ($rawGroup ?? '');
+            if (! isset($grouped[$group])) {
+                $grouped[$group] = [];
+            }
+            $grouped[$group][] = $item;
+        }
 
-                        if ($registeredGroup === $groupIndex) {
-                            return true;
-                        }
+        $result = [];
+        foreach ($grouped as $groupName => $groupItems) {
+            $navigationGroup = blank($groupName)
+                ? NavigationGroup::make()
+                : NavigationGroup::make($groupName);
 
-                        if (! $registeredGroup instanceof NavigationGroup) {
-                            return false;
-                        }
+            $result[] = $navigationGroup->items($groupItems);
+        }
 
-                        return $registeredGroup->getLabel() === $groupIndex;
-                    });
+        usort($result, function (NavigationGroup $a, NavigationGroup $b): int {
+            $aLabel = $a->getLabel();
+            $bLabel = $b->getLabel();
 
-                if ($registeredGroup instanceof NavigationGroup) {
-                    return $registeredGroup->items($items);
-                }
+            if (blank($aLabel)) {
+                return -1;
+            }
+            if (blank($bLabel)) {
+                return 1;
+            }
 
-                return NavigationGroup::make($registeredGroup ?? $groupIndex)
-                    ->items($items);
-            })
-            ->sortBy(function (NavigationGroup $group, ?string $groupIndex): int {
-                if (blank($group->getLabel())) {
-                    return -1;
-                }
+            return 0;
+        });
 
-                $registeredGroups = [];
-                $groupsToSearch = $registeredGroups;
-
-                if (Arr::first($registeredGroups) instanceof NavigationGroup) {
-                    $groupsToSearch = [
-                        ...array_keys($registeredGroups),
-                        ...array_map(fn (NavigationGroup $registeredGroup): string => $registeredGroup->getLabel(), array_values($registeredGroups)),
-                    ];
-                }
-
-                $sort = array_search($groupIndex, $groupsToSearch, true);
-
-                if ($sort === false) {
-                    return count($registeredGroups);
-                }
-
-                return $sort;
-            })
-            ->all();
+        return $result;
     }
 
     public function layout(PageNavigationLayout $layout): static

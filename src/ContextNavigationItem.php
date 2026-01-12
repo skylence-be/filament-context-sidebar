@@ -21,8 +21,12 @@ class ContextNavigationItem extends NavigationItem
     {
         $label = parent::getLabel();
 
-        return $this->shouldTranslateLabel
-            ? __($label)
-            : $label;
+        if (! $this->shouldTranslateLabel) {
+            return $label;
+        }
+
+        $translated = __($label);
+
+        return is_string($translated) ? $translated : $label;
     }
 }
