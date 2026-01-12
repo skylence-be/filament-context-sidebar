@@ -73,13 +73,17 @@
                         --col-span-lg: span {{ $sidebarWidths['lg'] == 12 ? 12 : 12 - ($sidebarWidths['lg'] ?? 3) }};
                         --col-span-xl: span {{ $sidebarWidths['xl'] == 12 ? 12 : 12 - ($sidebarWidths['xl'] ?? 3) }};
                         --col-span-2xl: span {{ $sidebarWidths['2xl'] == 12 ? 12 : 12 - ($sidebarWidths['2xl'] ?? 3) }}; margin-top: -2em;">
-                    {{ $slot }}
+                    <x-filament-panels::page>
+                        {{ $slot }}
+                    </x-filament-panels::page>
                 </div>
             </div>
         </div>
     @else
         <x-filament-context-sidebar::topbar :sidebar="$sidebar"/>
 
-        {{ $slot }}
+        <x-filament-panels::page>
+            {{ $slot }}
+        </x-filament-panels::page>
     @endif
 </div>
